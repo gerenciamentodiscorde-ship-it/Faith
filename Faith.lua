@@ -7,7 +7,7 @@ local humanoid = character:WaitForChild("Humanoid")
 local rootPart = character:WaitForChild("HumanoidRootPart")
 
 -- CONFIGURAÇÕES
-local NOME_PLATAFORMA = "BossFightPlatform" -- Nome que você achou no Dex
+local NOME_PLATAFORMA = "Magma crack" -- Nome que você achou no Dex
 local VELOCIDADE = 30 -- Deixe 16 para velocidade normal, ou mais alto para correr rápido
 
 humanoid.WalkSpeed = VELOCIDADE
