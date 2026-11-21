@@ -7,65 +7,34 @@ local humanoid = character:WaitForChild("Humanoid")
 local rootPart = character:WaitForChild("HumanoidRootPart")
 
 -- CONFIGURAÇÕES
-local NOME_PLATAFORMA = "Magma crack" -- Nome que você achou no Dex
-local VELOCIDADE = 30 -- Deixe 16 para velocidade normal, ou mais alto para correr rápido
+local NOME_ITEM = "Magma crack" -- Nome exato do item (respeite maiúsculas/minúsculas)
+local VELOCIDADE = 30 -- Velocidade para chegar mais rápido
 
 humanoid.WalkSpeed = VELOCIDADE
 
-local function encontrarAlvo()
-    -- Procura a plataforma no mapa
-    local plataforma = Workspace:FindFirstChild(NOME_PLATAFORMA, true)
-    
-    if not plataforma then return nil end
-
-    local alvoMaisProximo = nil
-    local distanciaMinima = math.huge
-
-    -- Procura dentro da plataforma (e em todos os objetos filhos dela)
-    for _, objeto in ipairs(plataforma:GetDescendants()) do
-        if objeto:IsA("BasePart") then
-            -- Ignora a própria base da plataforma para não tentar andar para o chão
-            if objeto ~= plataforma then 
-                
-                -- Verifica se a parte é vermelha, verde, ou tem nome de área
-                local cor = objeto.Color
-                local nome = string.lower(objeto.Name)
-                
-                -- Filtro de cor: Vermelho, Verde ou nomes específicos
-                -- (Ajuste os valores de cor se necessário)
-                local isVermelho = (cor.R > 0.7 and cor.G < 0.3 and cor.B < 0.3)
-                local isVerde = (cor.G > 0.7 and cor.R < 0.3 and cor.B < 0.3)
-                
-                if isVermelho or isVerde or string.find(nome, "red") or string.find(nome, "green") or string.find(nome, "zone") or string.find(nome, "area") then
-                    local distancia = (objeto.Position - rootPart.Position).Magnitude
-                    if distancia < distanciaMinima then
-                        distanciaMinima = distancia
-                        alvoMaisProximo = objeto
-                    end
-                end
-            end
-        end
-    end
-    return alvoMaisProximo
-end
-
--- LOOP PRINCIPAL
-print("Script de Auto Move iniciado. Procurando áreas...")
+print("[Magma Auto] Script iniciado. Procurando por: " .. NOME_ITEM)
 
 while true do
-    local alvo = encontrarAlvo()
+    -- Procura o item em todo o mapa (Workspace)
+    -- O 'true' no final serve para procurar dentro de pastas também
+    local item = Workspace:FindFirstChild(NOME_ITEM, true)
     
-    if alvo then
-        print("Movendo para a área: " .. alvo.Name)
-        -- Manda o personagem andar até a área
-        humanoid:MoveTo(alvo.Position)
+    if item and item:IsA("BasePart") then
+        -- Se o item existe, avisa e anda até ele
+        print("[Magma Auto] Item encontrado! Movendo...")
         
-        -- Espera um pouco antes de recalcular. 
-        -- 0.3s é um bom tempo para não bugar o movimento do Roblox.
-        task.wait(0.3) 
+        -- Move até a posição do item
+        humanoid:MoveTo(item.Position)
+        
+        -- Fica atualizando a posição enquanto o item existir (caso ele se mova)
+        while item and item.Parent do
+            humanoid:MoveTo(item.Position)
+            task.wait(0.2)
+        end
+        
+        print("[Magma Auto] Item sumiu. Voltando a procurar...")
     else
-        -- Se não achou nada (boss morreu ou não spawnou ainda)
-        print("Nenhuma área encontrada. Aguardando Boss...")
+        -- Se não achou o item, espera 1 segundo e tenta de novo
         task.wait(1)
     end
 end
