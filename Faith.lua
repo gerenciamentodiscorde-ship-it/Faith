@@ -6,7 +6,10 @@ local player = Players.LocalPlayer
 local FarmAtivo = false
 
 -- CONFIGURAÇÕES
-local NOME_VFX = "SurgeWarningVFX" -- O nome que você achou
+local NOME_VFX = "SurgeWarningVFX" 
+
+-- Variável de memória: guarda o último VFX que já fomos
+local ultimoVFX = nil 
 
 -- ==========================================
 -- 1. INTERFACE (BOTÃO)
@@ -40,16 +43,17 @@ botao.MouseButton1Click:Connect(function()
     if FarmAtivo then
         botao.Text = "Farm Magma: ON"
         botao.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
-        print("[Magma Auto] Ligado! Procurando por " .. NOME_VFX)
+        print("[Magma Auto] Ligado!")
     else
         botao.Text = "Farm Magma: OFF"
         botao.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
         print("[Magma Auto] Desligado.")
+        ultimoVFX = nil -- Reseta a memória ao desligar
     end
 end)
 
 -- ==========================================
--- 3. LÓGICA DE TELEPORTE
+-- 3. LÓGICA DE TELEPORTE INTELIGENTE
 -- ==========================================
 local function procurarETeleportar()
     local character = player.Character
@@ -57,45 +61,50 @@ local function procurarETeleportar()
     local rootPart = character:FindFirstChild("HumanoidRootPart")
     if not rootPart then return end
 
-    -- Procura o SurgeWarningVFX no mapa inteiro (dentro do Workspace)
+    -- Procura o efeito no mapa
     local efeito = Workspace:FindFirstChild(NOME_VFX, true)
 
-    if efeito then
-        -- Se o efeito for uma Part (bloco), teleporta direto pra cima dele
+    -- Se achou o efeito E ele é DIFERENTE do último que a gente já foi
+    if efeito and efeito ~= ultimoVFX then
+        
+        -- Pega a posição do efeito
+        local posicaoAlvo = nil
         if efeito:IsA("BasePart") then
-            print("[Magma Auto] Surto detectado! Teleportando...")
+            posicaoAlvo = efeito.Position
+        elseif efeito:IsA("Model") then
+            local partePrincipal = efeito.PrimaryPart or efeito:FindFirstChildWhichIsA("BasePart")
+            if partePrincipal then
+                posicaoAlvo = partePrincipal.Position
+            end
+        end
+
+        -- Se conseguiu achar uma posição, teleporta
+        if posicaoAlvo then
+            print("[Magma Auto] Novo evento detectado! Teleportando uma única vez...")
             
-            -- +3 no Y para você não ficar preso dentro do chão
-            rootPart.CFrame = CFrame.new(efeito.Position + Vector3.new(0, 3, 0))
+            -- Salva na memória para não teleportar de novo nesse mesmo evento
+            ultimoVFX = efeito 
+            
+            -- Faz o teleporte (só uma vez)
+            rootPart.CFrame = CFrame.new(posicaoAlvo + Vector3.new(0, 3, 0))
             
             StarterGui:SetCore("SendNotification", {
                 Title = "Farm Magma",
                 Text = "Evento encontrado! Teleportado.",
                 Duration = 3
             })
-        else
-            -- Se for um Model (vários blocos juntos), pega a posição principal dele
-            print("[Magma Auto] Surto detectado (Model)! Teleportando...")
-            
-            -- Tenta pegar a parte principal do Model
-            local partePrincipal = efeito.PrimaryPart or efeito:FindFirstChildWhichIsA("BasePart")
-            if partePrincipal then
-                rootPart.CFrame = CFrame.new(partePrincipal.Position + Vector3.new(0, 3, 0))
-                
-                StarterGui:SetCore("SendNotification", {
-                    Title = "Farm Magma",
-                    Text = "Evento encontrado! Teleportado.",
-                    Duration = 3
-                })
-            end
         end
+    end
+    
+    -- Limpa a memória se o efeito sumiu do mapa (evento acabou)
+    if ultimoVFX and not ultimoVFX.Parent then
+        ultimoVFX = nil
     end
 end
 
 -- ==========================================
 -- 4. LOOP DE VIGILÂNCIA
 -- ==========================================
--- Fica checando o tempo todo. Se o botão estiver ON, ele procura o SurgeWarningVFX
 while task.wait(0.2) do
     if FarmAtivo then
         procurarETeleportar()
